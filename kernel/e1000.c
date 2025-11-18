@@ -105,6 +105,50 @@ e1000_transmit(char *buf, int len)
   // so that the caller knows to free buf.
   //
 
+  printf("e1000_transmit()\n");
+  
+  uint32 tx_next_ring_index = regs[E1000_TDT];
+
+  printf("Expecting next descriptor at ring index %d\n", tx_next_ring_index);
+
+  // If the next descriptor in the ring isn't yet finished (we've wrapped around), then we early return error.
+  if (!(tx_ring[tx_next_ring_index].status & E1000_TXD_STAT_DD)) {
+    printf("Next descriptor not yet available");
+    return -1;
+  }
+
+  // Free the last buffer (Just in case. We free the buf below so this doesn't seem neccessary but...)
+  if (tx_ring[tx_next_ring_index].addr) {
+    kfree((void*)tx_ring[tx_next_ring_index].addr);  // Does not null our addr, so we do it.
+    tx_ring[tx_next_ring_index].addr = 0;
+  }
+
+  tx_ring[tx_next_ring_index].addr = (uint64)buf;
+  tx_ring[tx_next_ring_index].length = len;
+  tx_ring[tx_next_ring_index].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS; // End of Packet (Assumption is that each call and packet will be compromised of just one descriptor in the ring) and Report status so that we can spin on the memory.
+  tx_ring[tx_next_ring_index].status = 0;
+
+  printf("addr: %ld\n", tx_ring[tx_next_ring_index].addr);
+  printf("length: %d\n", tx_ring[tx_next_ring_index].length);
+  printf("cmd: %d\n", tx_ring[tx_next_ring_index].cmd);
+  printf("status: %d\n", tx_ring[tx_next_ring_index].status);
+
+
+  // This is our signal to hardware to process.
+  regs[E1000_TDT] = (tx_next_ring_index + 1) % TX_RING_SIZE;
+
+  // Spin on descriptor done.
+  while (!(tx_ring[tx_next_ring_index].status & E1000_TXD_STAT_DD)) {
+    printf(".");
+  }
+
+  printf("Sent!\n");
+
+  // Free buf
+  kfree(buf);
+
+  printf("Freed buffer\n");
+
   
   return 0;
 }
@@ -118,6 +162,8 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver a buf for each packet (using net_rx()).
   //
+
+  printf("e1000_recv()\n");
 
 }
 

@@ -16,7 +16,8 @@ static struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
 // remember where the e1000's registers live.
 static volatile uint32 *regs;
 
-struct spinlock e1000_lock;
+struct spinlock e1000_transmit_lock;
+struct spinlock e1000_recv_lock;
 
 // called by pci_init().
 // xregs is the memory address at which the
@@ -28,7 +29,8 @@ e1000_init(uint32 *xregs)
 {
   int i;
 
-  initlock(&e1000_lock, "e1000");
+  initlock(&e1000_transmit_lock, "e1000_transmit");
+  initlock(&e1000_recv_lock, "e1000_recv");
 
   regs = xregs;
 
@@ -93,31 +95,18 @@ e1000_init(uint32 *xregs)
 int
 e1000_transmit(char *buf, int len)
 {
-  //
-  // Your code here.
-  //
-  // buf contains an ethernet frame; program it into
-  // the TX descriptor ring so that the e1000 sends it. Stash
-  // a pointer so that it can be freed after send completes.
-  //
-  // return 0 on success.
-  // return -1 on failure (e.g., there is no descriptor available)
-  // so that the caller knows to free buf.
-  //
-
-  printf("e1000_transmit()\n");
+  // First, acquire lock
+  acquire(&e1000_transmit_lock);
   
   uint32 tx_next_ring_index = regs[E1000_TDT];
 
-  printf("Expecting next descriptor at ring index %d\n", tx_next_ring_index);
-
   // If the next descriptor in the ring isn't yet finished (we've wrapped around), then we early return error.
   if (!(tx_ring[tx_next_ring_index].status & E1000_TXD_STAT_DD)) {
-    printf("Next descriptor not yet available");
+    release(&e1000_transmit_lock);
     return -1;
   }
 
-  // Free the last buffer (Just in case. We free the buf below so this doesn't seem neccessary but...)
+  // Free the last buffer. When we loop around, we'll start freeing every time.
   if (tx_ring[tx_next_ring_index].addr) {
     kfree((void*)tx_ring[tx_next_ring_index].addr);  // Does not null our addr, so we do it.
     tx_ring[tx_next_ring_index].addr = 0;
@@ -125,30 +114,13 @@ e1000_transmit(char *buf, int len)
 
   tx_ring[tx_next_ring_index].addr = (uint64)buf;
   tx_ring[tx_next_ring_index].length = len;
-  tx_ring[tx_next_ring_index].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS; // End of Packet (Assumption is that each call and packet will be compromised of just one descriptor in the ring) and Report status so that we can spin on the memory.
+  tx_ring[tx_next_ring_index].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS; // End of Packet (Assumption is that each call and packet will be compromised of just one descriptor in the ring) and Report status so that we can spin on the hardware being finished with the descriptor.
   tx_ring[tx_next_ring_index].status = 0;
-
-  printf("addr: %ld\n", tx_ring[tx_next_ring_index].addr);
-  printf("length: %d\n", tx_ring[tx_next_ring_index].length);
-  printf("cmd: %d\n", tx_ring[tx_next_ring_index].cmd);
-  printf("status: %d\n", tx_ring[tx_next_ring_index].status);
-
 
   // This is our signal to hardware to process.
   regs[E1000_TDT] = (tx_next_ring_index + 1) % TX_RING_SIZE;
 
-  // Spin on descriptor done.
-  while (!(tx_ring[tx_next_ring_index].status & E1000_TXD_STAT_DD)) {
-    printf(".");
-  }
-
-  printf("Sent!\n");
-
-  // Free buf
-  kfree(buf);
-
-  printf("Freed buffer\n");
-
+  release(&e1000_transmit_lock);
   
   return 0;
 }
@@ -156,15 +128,34 @@ e1000_transmit(char *buf, int len)
 static void
 e1000_recv(void)
 {
-  //
-  // Your code here.
-  //
-  // Check for packets that have arrived from the e1000
-  // Create and deliver a buf for each packet (using net_rx()).
-  //
+  acquire(&e1000_recv_lock);
 
-  printf("e1000_recv()\n");
+  // We will loop until we run out of descriptors to process.
+  while (true) {
+    uint32 rx_next_ring_index = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
 
+    if (!(rx_ring[rx_next_ring_index].status & E1000_RXD_STAT_DD)) {
+      // The next descriptor is not yet ready, we're finished looping.
+      release(&e1000_recv_lock);
+      return;
+    }
+
+    // Deliver the packet to kernel.
+    net_rx((char*)rx_ring[rx_next_ring_index].addr, rx_ring[rx_next_ring_index].length);
+
+    // Allocate empty page for buffer.
+    rx_ring[rx_next_ring_index].addr = (uint64) kalloc();
+    if (!rx_ring[rx_next_ring_index].addr)
+      panic("e1000 kalloc in e1000_recv()");
+
+    // Clear status
+    rx_ring[rx_next_ring_index].status = 0;
+
+    // Move RDT register forward
+    regs[E1000_RDT] = rx_next_ring_index;
+  }
+
+  panic("e1000_recv unreachable");
 }
 
 void

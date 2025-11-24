@@ -812,7 +812,94 @@ dns()
   } else {
     return 0;
   }
-}  
+}
+
+//
+// latency test - measure round-trip time (RTT) for ping packets
+// python3 nettest.py ping must be running to act as echo server
+//
+int
+latency_test()
+{
+  printf("latency_test: starting\n");
+
+  bind(2005);
+
+  uint32 dst = 0x0A000202; // 10.0.2.2
+  int dport = NET_TESTS_PORT;
+  int num_samples = 100;
+  int latencies[100];
+  int successful = 0;
+
+  // Send packets and measure RTT
+  for(int i = 0; i < num_samples; i++){
+    char buf[32];
+    memcpy(buf, "latency", 7);
+
+    // Record start time
+    int start = uptime();
+
+    if(send(2005, dst, dport, buf, 7) < 0){
+      printf("latency_test: send() failed\n");
+      continue;
+    }
+
+    // Wait for echo reply
+    char ibuf[128];
+    uint32 src = 0;
+    uint16 sport = 0;
+    int cc = recv(2005, &src, &sport, ibuf, sizeof(ibuf)-1);
+
+    // Record end time
+    int end = uptime();
+
+    if(cc < 0){
+      printf("latency_test: recv() failed\n");
+      continue;
+    }
+
+    // Store latency
+    latencies[successful] = end - start;
+    successful++;
+  }
+
+  if(successful == 0){
+    printf("latency_test: FAILED - no successful samples\n");
+    return 0;
+  }
+
+  // Sort latencies for percentile calculation
+  for(int i = 0; i < successful - 1; i++){
+    for(int j = i + 1; j < successful; j++){
+      if(latencies[i] > latencies[j]){
+        int temp = latencies[i];
+        latencies[i] = latencies[j];
+        latencies[j] = temp;
+      }
+    }
+  }
+
+  // Calculate statistics
+  int min = latencies[0];
+  int max = latencies[successful - 1];
+  int sum = 0;
+  for(int i = 0; i < successful; i++){
+    sum += latencies[i];
+  }
+  int avg = sum / successful;
+
+  // Calculate percentiles
+  int p95_idx = (successful * 95) / 100;
+  int p99_idx = (successful * 99) / 100;
+  int p95 = latencies[p95_idx];
+  int p99 = latencies[p99_idx];
+
+  printf("Latency (ticks): min=%d avg=%d max=%d p95=%d p99=%d\n",
+         min, avg, max, p95, p99);
+  printf("latency_test: OK\n");
+
+  return 1;
+}
 
 void
 usage()
@@ -826,6 +913,7 @@ usage()
   printf("       nettest ping2\n");
   printf("       nettest ping3\n");
   printf("       nettest dns\n");
+  printf("       nettest latency\n");
   printf("       nettest grade\n");
   exit(1);
 }
@@ -943,6 +1031,8 @@ main(int argc, char *argv[])
     }
   } else if(strcmp(argv[1], "dns") == 0){
     dns();
+  } else if(strcmp(argv[1], "latency") == 0){
+    latency_test();
   } else {
     usage();
   }

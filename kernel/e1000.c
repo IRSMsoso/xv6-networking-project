@@ -131,7 +131,7 @@ e1000_recv(void)
   acquire(&e1000_recv_lock);
 
   // We will loop until we run out of descriptors to process.
-  while (true) {
+  while (1) {
     uint32 rx_next_ring_index = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
 
     if (!(rx_ring[rx_next_ring_index].status & E1000_RXD_STAT_DD)) {

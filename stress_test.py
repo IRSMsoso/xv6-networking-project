@@ -24,6 +24,7 @@ def usage():
     sys.stderr.write("Usage: stress_test.py droprate\n")
     sys.stderr.write("       stress_test.py queuedepth\n")
     sys.stderr.write("       stress_test.py throughput\n")
+    sys.stderr.write("       stress_test.py sustained\n")
     sys.exit(1)
 
 def test_droprate():
@@ -142,6 +143,58 @@ def test_throughput():
     print()
     print("Check xv6 output for received throughput measurement")
 
+def test_sustained():
+    """
+    Send packets continuously for 30 seconds at moderate rate
+    Tests sustained high load handling
+    """
+    print("Sustained High Load Test: Starting")
+    print("=" * 60)
+    print("Sending 2000 packets continuously...")
+    print("Rate: ~50 packets/second")
+    print("(Make sure xv6 is running 'nettest sustained')")
+    print()
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Use FWDPORT1 to reach xv6's port 2000
+    target_port = FWDPORT1
+
+    # Send 2000 packets at moderate rate
+    total_packets = 2000
+    packets_per_sec = 50  # Reduced from 100 to avoid queue overflow
+    delay = 1.0 / packets_per_sec  # 0.02 seconds = 20ms
+    start_time = time.time()
+
+    print(f"Target: {total_packets} packets (expected ~40 seconds)")
+    print()
+
+    sent_count = 0
+    for i in range(total_packets):
+        payload = f"sustained {i}".encode('ascii')
+        sock.sendto(payload, ("127.0.0.1", target_port))
+        sent_count += 1
+
+        # Print progress every 1000 packets
+        if (i + 1) % 1000 == 0:
+            elapsed = time.time() - start_time
+            rate = sent_count / elapsed if elapsed > 0 else 0
+            print(f"Progress: {sent_count}/{total_packets} packets sent ({rate:.1f} pkt/sec)")
+
+        time.sleep(delay)
+
+    elapsed = time.time() - start_time
+    actual_rate = sent_count / elapsed
+
+    print()
+    print(f"Sent {sent_count} packets in {elapsed:.2f} seconds")
+    print(f"Actual rate: {actual_rate:.1f} packets/sec")
+    print()
+    print("Check xv6 output for:")
+    print("  - Total packets received")
+    print("  - Memory leak status")
+    print("  - Error count")
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         usage()
@@ -152,5 +205,7 @@ if __name__ == "__main__":
         test_queuedepth()
     elif sys.argv[1] == "throughput":
         test_throughput()
+    elif sys.argv[1] == "sustained":
+        test_sustained()
     else:
         usage()

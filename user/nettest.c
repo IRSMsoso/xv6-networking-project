@@ -8,6 +8,9 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
+// Forward declarations
+int countfree();
+
 //
 // send a single UDP packet (but don't recv() the reply).
 // python3 nettest.py txone can be used to wait for
@@ -901,6 +904,81 @@ latency_test()
   return 1;
 }
 
+//
+// sustained high load test - receive fixed number of packets over extended period
+// python3 stress_test.py sustained must be running to send continuous traffic
+//
+int
+sustained_load_test()
+{
+  printf("sustained_load_test: starting\n");
+  printf("Waiting to receive 2000 packets...\n");
+
+  bind(2000);
+
+  int start_time = uptime();
+  int expected = 2000;
+  int received_count = 0;
+
+  // Check initial free memory
+  int free_before = countfree();
+
+  // Try to receive expected number of packets
+  for(int i = 0; i < expected; i++){
+    char buf[1500];
+    uint32 src;
+    uint16 sport;
+
+    int cc = recv(2000, &src, &sport, buf, sizeof(buf));
+
+    if(cc > 0){
+      received_count++;
+
+      // Print progress every 500 packets
+      if(received_count % 500 == 0){
+        int elapsed = uptime() - start_time;
+        printf("Progress: %d/%d packets received in %d ticks\n", received_count, expected, elapsed);
+      }
+    } else {
+      printf("sustained_load_test: recv() failed at packet %d\n", i);
+      break;
+    }
+  }
+
+  // Check final free memory
+  int free_after = countfree();
+  int elapsed = uptime() - start_time;
+
+  printf("\n=== Sustained Load Test Results ===\n");
+  printf("Duration: %d ticks (~%d seconds)\n", elapsed, elapsed / 100);
+  printf("Packets received: %d/%d\n", received_count, expected);
+  printf("Average rate: %d packets/sec\n", (received_count * 100) / (elapsed > 0 ? elapsed : 1));
+  printf("Memory before: %d pages\n", free_before);
+  printf("Memory after: %d pages\n", free_after);
+  printf("Memory leaked: %d pages\n", free_before - free_after);
+
+  // Check for memory leaks
+  if(free_before - free_after > 10){
+    printf("sustained_load_test: FAILED - significant memory leak detected\n");
+    return 0;
+  }
+
+  // Should receive at least 1200 packets (60%)
+  int min_acceptable = 1200;
+
+  if(received_count < min_acceptable){
+    printf("sustained_load_test: FAILED - too many packets lost\n");
+    printf("Received: %d/%d (%d%%)\n",
+           received_count, expected, (received_count * 100) / expected);
+    return 0;
+  }
+
+  printf("sustained_load_test: OK\n");
+  printf("Packet reception rate: %d%% (%d/%d)\n",
+         (received_count * 100) / expected, received_count, expected);
+  return 1;
+}
+
 void
 usage()
 {
@@ -914,6 +992,7 @@ usage()
   printf("       nettest ping3\n");
   printf("       nettest dns\n");
   printf("       nettest latency\n");
+  printf("       nettest sustained\n");
   printf("       nettest grade\n");
   exit(1);
 }
@@ -1033,6 +1112,8 @@ main(int argc, char *argv[])
     dns();
   } else if(strcmp(argv[1], "latency") == 0){
     latency_test();
+  } else if(strcmp(argv[1], "sustained") == 0){
+    sustained_load_test();
   } else {
     usage();
   }

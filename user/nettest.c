@@ -107,7 +107,7 @@ rx(char *name)
     }
 
     lastseq = seq;
-    
+
     ok += 1;
   }
 
@@ -260,7 +260,7 @@ ping0()
   printf("ping0: starting\n");
 
   bind(2004);
-  
+
   uint32 dst = 0x0A000202; // 10.0.2.2
   int dport = NET_TESTS_PORT;
   char buf[5];
@@ -279,22 +279,22 @@ ping0()
     fprintf(2, "ping0: recv() failed\n");
     return 0;
   }
-  
+
   if(src != 0x0A000202){ // 10.0.2.2
     printf("ping0: wrong ip src %x, expecting %x\n", src, 0x0A000202);
     return 0;
   }
-  
+
   if(sport != NET_TESTS_PORT){
     printf("ping0: wrong sport %d, expecting %d\n", sport, NET_TESTS_PORT);
     return 0;
   }
-  
+
   if(memcmp(buf, ibuf, sizeof(buf)) != 0){
     printf("ping0: wrong content\n");
     return 0;
   }
-  
+
   if(cc != sizeof(buf)){
     printf("ping0: wrong length %d, expecting %ld\n", cc, sizeof(buf));
     return 0;
@@ -316,7 +316,7 @@ ping1()
   printf("ping1: starting\n");
 
   bind(2005);
-  
+
   for(int ii = 0; ii < 20; ii++){
     uint32 dst = 0x0A000202; // 10.0.2.2
     int dport = NET_TESTS_PORT;
@@ -374,10 +374,10 @@ int
 ping2()
 {
   printf("ping2: starting\n");
-  
+
   bind(2006);
   bind(2007);
-  
+
   for(int ii = 0; ii < 5; ii++){
     for(int port = 2006; port <= 2007; port++){
       uint32 dst = 0x0A000202; // 10.0.2.2
@@ -405,17 +405,17 @@ ping2()
         fprintf(2, "ping2: recv() failed\n");
         return 0;
       }
-      
+
       if(src != 0x0A000202){ // 10.0.2.2
         printf("ping2: wrong ip src %x\n", src);
         return 0;
       }
-      
+
       if(sport != NET_TESTS_PORT){
         printf("ping2: wrong sport %d\n", sport);
         return 0;
       }
-      
+
       if(cc != 4){
         printf("ping2: wrong length %d\n", cc);
         return 0;
@@ -454,7 +454,7 @@ int
 ping3()
 {
   printf("ping3: starting\n");
-  
+
   bind(2008);
   bind(2009);
 
@@ -475,7 +475,7 @@ ping3()
     }
   }
   pause(1);
-  
+
   //
   // send so many packets from 2008 and 2010 that some of the
   // replies must be dropped due to the requirement
@@ -527,17 +527,17 @@ ping3()
       fprintf(2, "ping3: recv() failed\n");
       return 0;
     }
-    
+
     if(src != 0x0A000202){ // 10.0.2.2
       printf("ping3: wrong ip src %x\n", src);
       return 0;
     }
-    
+
     if(sport != NET_TESTS_PORT){
       printf("ping3: wrong sport %d\n", sport);
       return 0;
     }
-      
+
     if(cc != 4){
       printf("ping3: wrong length %d\n", cc);
       return 0;
@@ -550,7 +550,7 @@ ping3()
     buf[1] = ' ';
     buf[2] = 'A' + ii;
     buf[3] = '!';
-    
+
     if(memcmp(buf, ibuf, 3) != 0){
       // possibly recv() sees packets out of order.
       // possibly the burst on 2008 caused 2009's
@@ -606,8 +606,8 @@ ping3()
 void
 encode_qname(char *qn, char *host)
 {
-  char *l = host; 
-  
+  char *l = host;
+
   for(char *c = host; c < host+strlen(host)+1; c++) {
     if(*c == '.') {
       *qn++ = (char) (c-l);
@@ -646,14 +646,14 @@ int
 dns_req(uint8 *obuf)
 {
   int len = 0;
-  
+
   struct dns *hdr = (struct dns *) obuf;
   hdr->id = htons(6828);
   hdr->rd = 1;
   hdr->qdcount = htons(1);
-  
+
   len += sizeof(struct dns);
-  
+
   // qname part of question
   char *qname = (char *) (obuf + sizeof(struct dns));
   char *s = "pdos.csail.mit.edu.";
@@ -692,17 +692,17 @@ dns_rep(uint8 *ibuf, int cc)
     printf("DNS wrong id: %d\n", ntohs(hdr->id));
     return 0;
   }
-  
+
   if(hdr->rcode != 0) {
     printf("DNS rcode error: %x\n", hdr->rcode);
     return 0;
   }
-  
+
   //printf("qdcount: %x\n", ntohs(hdr->qdcount));
   //printf("ancount: %x\n", ntohs(hdr->ancount));
   //printf("nscount: %x\n", ntohs(hdr->nscount));
   //printf("arcount: %x\n", ntohs(hdr->arcount));
-  
+
   len = sizeof(struct dns);
 
   for(int i =0; i < ntohs(hdr->qdcount); i++) {
@@ -718,7 +718,7 @@ dns_rep(uint8 *ibuf, int cc)
       printf("dns: invalid DNS reply\n");
       return 0;
     }
-    
+
     char *qn = (char *) (ibuf+len);
 
     if((int) qn[0] > 63) {  // compression?
@@ -728,7 +728,7 @@ dns_rep(uint8 *ibuf, int cc)
       decode_qname(qn, cc - len);
       len += strlen(qn)+1;
     }
-      
+
     struct dns_data *d = (struct dns_data *) (ibuf+len);
     len += sizeof(struct dns_data);
     //printf("type %d ttl %d len %d\n", ntohs(d->type), ntohl(d->ttl), ntohs(d->len));
@@ -788,14 +788,14 @@ dns()
 
   memset(obuf, 0, N);
   memset(ibuf, 0, N);
-  
+
   // 8.8.8.8: google's name server
   dst = (8 << 24) | (8 << 16) | (8 << 8) | (8 << 0);
 
   len = dns_req(obuf);
-  
+
   bind(10000);
-  
+
   if(send(10000, dst, 53, (char*)obuf, len) < 0){
     fprintf(2, "dns: send() failed\n");
     return 0;
@@ -979,6 +979,61 @@ sustained_load_test()
   return 1;
 }
 
+//
+// throughput test - measures packets per second
+// Receives 1000 packets, echoes them back, and calculates throughput
+// python3 stress_test.py throughput must be running to send packets
+//
+int
+throughput_test()
+{
+  printf("throughput_test: starting\n");
+  printf("Waiting to receive 1000 packets and echo them back...\n");
+
+  bind(2000);
+  int start = uptime();
+
+  char buf[1500];
+  uint32 src;
+  uint16 sport;
+  int received = 0;
+  int echoed = 0;
+
+  for(int i = 0; i < 1000; i++){
+    int cc = recv(2000, &src, &sport, buf, sizeof(buf));
+    if(cc < 0){
+      fprintf(2, "throughput_test: recv() failed at packet %d\n", i);
+      break;
+    }
+    received++;
+
+    // Echo the packet back
+    if(send(2000, src, sport, buf, cc) < 0){
+      fprintf(2, "throughput_test: send() failed at packet %d\n", i);
+    } else {
+      echoed++;
+    }
+  }
+
+  int elapsed = uptime() - start;
+
+  printf("\n=== Throughput Test Results ===\n");
+  printf("Packets received: %d/1000\n", received);
+  printf("Packets echoed: %d/%d\n", echoed, received);
+  printf("Time: %d ticks\n", elapsed);
+  if(elapsed > 0){
+    printf("Throughput: %d packets/sec\n", (received * 100) / elapsed);
+  }
+
+  if(received >= 950 && echoed >= 950){
+    printf("throughput_test: OK\n");
+    return 1;
+  } else {
+    printf("throughput_test: FAILED - packet loss detected\n");
+    return 0;
+  }
+}
+
 void
 usage()
 {
@@ -992,6 +1047,7 @@ usage()
   printf("       nettest ping3\n");
   printf("       nettest dns\n");
   printf("       nettest latency\n");
+  printf("       nettest throughput\n");
   printf("       nettest sustained\n");
   printf("       nettest grade\n");
   exit(1);
@@ -1012,7 +1068,7 @@ countfree()
     printf("pipe() failed in countfree()\n");
     exit(1);
   }
-  
+
   int pid = fork();
 
   if(pid < 0){
@@ -1022,7 +1078,7 @@ countfree()
 
   if(pid == 0){
     close(fds[0]);
-    
+
     while(1){
       uint64 a = (uint64) sbrk(4096);
       if(a == 0xffffffffffffffff){
@@ -1059,7 +1115,7 @@ countfree()
 
   close(fds[0]);
   wait((int*)0);
-  
+
   return n;
 }
 
@@ -1112,6 +1168,8 @@ main(int argc, char *argv[])
     dns();
   } else if(strcmp(argv[1], "latency") == 0){
     latency_test();
+  } else if(strcmp(argv[1], "throughput") == 0){
+    throughput_test();
   } else if(strcmp(argv[1], "sustained") == 0){
     sustained_load_test();
   } else {

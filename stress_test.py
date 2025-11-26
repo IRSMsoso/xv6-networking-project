@@ -20,12 +20,14 @@ FWDPORT2 = (os.getuid() % 5000) + 30999
 # xv6's nettest.c tx sends to SERVERPORT.
 SERVERPORT = (os.getuid() % 5000) + 25099
 
+
 def usage():
     sys.stderr.write("Usage: stress_test.py droprate\n")
     sys.stderr.write("       stress_test.py queuedepth\n")
     sys.stderr.write("       stress_test.py throughput\n")
     sys.stderr.write("       stress_test.py sustained\n")
     sys.exit(1)
+
 
 def test_droprate():
     """
@@ -44,12 +46,12 @@ def test_droprate():
 
     start_time = time.time()
     for i in range(packets_sent):
-        payload = f"droptest {i}".encode('ascii')
+        payload = f"droptest {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", FWDPORT1))
 
     elapsed = time.time() - start_time
     print(f"Sent {packets_sent} packets in {elapsed:.3f} seconds")
-    print(f"Rate: {packets_sent/elapsed:.1f} packets/sec")
+    print(f"Rate: {packets_sent / elapsed:.1f} packets/sec")
     print()
     print("Waiting for xv6 to report received count...")
     print("(xv6 should report how many packets it received)")
@@ -58,6 +60,7 @@ def test_droprate():
     print("1. The drop rate % = (sent - received) / sent * 100")
     print(f"2. We sent {packets_sent} packets")
     print("3. Check xv6 output for received count")
+
 
 def test_queuedepth():
     """
@@ -72,7 +75,7 @@ def test_queuedepth():
     # Phase 1: Send at low rate
     print("Phase 1: Low rate (10 pkt/sec) for 5 seconds")
     for i in range(50):
-        payload = f"queue_low {i}".encode('ascii')
+        payload = f"queue_low {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", FWDPORT1))
         time.sleep(0.1)  # 10 packets per second
 
@@ -82,7 +85,7 @@ def test_queuedepth():
     # Phase 2: Send at medium rate
     print("\nPhase 2: Medium rate (50 pkt/sec) for 5 seconds")
     for i in range(250):
-        payload = f"queue_med {i}".encode('ascii')
+        payload = f"queue_med {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", FWDPORT1))
         time.sleep(0.02)  # 50 packets per second
 
@@ -92,7 +95,7 @@ def test_queuedepth():
     # Phase 3: Send burst
     print("\nPhase 3: Burst (500 packets instantly)")
     for i in range(500):
-        payload = f"queue_burst {i}".encode('ascii')
+        payload = f"queue_burst {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", FWDPORT1))
 
     print("Phase 3 complete. Check xv6 queue behavior.")
@@ -101,7 +104,7 @@ def test_queuedepth():
     # Phase 4: Recovery period
     print("\nPhase 4: Recovery (slow rate 5 pkt/sec) for 5 seconds")
     for i in range(25):
-        payload = f"queue_recover {i}".encode('ascii')
+        payload = f"queue_recover {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", FWDPORT1))
         time.sleep(0.2)  # 5 packets per second
 
@@ -111,37 +114,78 @@ def test_queuedepth():
     print("2. Log timestamps and queue sizes")
     print("3. Plot the data to see queue behavior under load")
 
+
 def test_throughput():
     """
     Send 1000 packets to xv6 for throughput measurement
+    xv6 echoes them back to verify round-trip
     """
     print("Throughput Test: Starting")
     print("=" * 60)
-    print("Sending 1000 packets to port 3000...")
+    print("Sending 1000 packets to port 2000 (via FWDPORT1)...")
     print("(Make sure xv6 is running 'nettest throughput')")
     print()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", SERVERPORT))  # Bind to receive echoes
 
-    # Map port 3000 to appropriate forward port
-    # Adjust based on your qemu configuration
-    # Using FWDPORT1 as default, may need adjustment
+    # FWDPORT1 maps to xv6's port 2000
     target_port = FWDPORT1
 
     packets_sent = 1000
+    packets_received = 0
+
+    print("Sending packets...")
     start_time = time.time()
 
     for i in range(packets_sent):
-        payload = f"throughput {i}".encode('ascii')
-        # Note: May need to bind to specific port or adjust forwarding
+        payload = f"throughput {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", target_port))
 
-    elapsed = time.time() - start_time
-
-    print(f"Sent {packets_sent} packets in {elapsed:.3f} seconds")
-    print(f"Throughput: {packets_sent/elapsed:.1f} packets/sec")
+    send_elapsed = time.time() - start_time
+    print(f"Sent {packets_sent} packets in {send_elapsed:.3f} seconds")
+    print(f"Send rate: {packets_sent / send_elapsed:.1f} packets/sec")
     print()
-    print("Check xv6 output for received throughput measurement")
+
+    # Now receive echoed packets back
+    print("Receiving echoed packets...")
+    sock.settimeout(5.0)  # 5 second timeout for receiving
+    recv_start = time.time()
+
+    try:
+        for i in range(packets_sent):
+            try:
+                data, addr = sock.recvfrom(4096)
+                packets_received += 1
+            except socket.timeout:
+                print(f"Timeout waiting for packet {i}")
+                break
+    except KeyboardInterrupt:
+        print("\nInterrupted by user")
+
+    recv_elapsed = time.time() - recv_start
+    total_elapsed = time.time() - start_time
+
+    print()
+    print("=" * 60)
+    print("Throughput Test Results:")
+    print(f"  Packets sent: {packets_sent}")
+    print(f"  Packets received: {packets_received}")
+    print(
+        f"  Loss rate: {((packets_sent - packets_received) / packets_sent * 100):.1f}%"
+    )
+    print(f"  Total time: {total_elapsed:.3f} seconds")
+    print(
+        f"  Round-trip throughput: {packets_received / total_elapsed:.1f} packets/sec"
+    )
+    print()
+
+    if packets_received >= packets_sent * 0.95:  # 95% success rate
+        print("✓ Throughput test PASSED")
+    else:
+        print("✗ Throughput test FAILED - too many packets lost")
+    print("=" * 60)
+
 
 def test_sustained():
     """
@@ -171,7 +215,7 @@ def test_sustained():
 
     sent_count = 0
     for i in range(total_packets):
-        payload = f"sustained {i}".encode('ascii')
+        payload = f"sustained {i}".encode("ascii")
         sock.sendto(payload, ("127.0.0.1", target_port))
         sent_count += 1
 
@@ -179,7 +223,9 @@ def test_sustained():
         if (i + 1) % 1000 == 0:
             elapsed = time.time() - start_time
             rate = sent_count / elapsed if elapsed > 0 else 0
-            print(f"Progress: {sent_count}/{total_packets} packets sent ({rate:.1f} pkt/sec)")
+            print(
+                f"Progress: {sent_count}/{total_packets} packets sent ({rate:.1f} pkt/sec)"
+            )
 
         time.sleep(delay)
 
@@ -194,6 +240,7 @@ def test_sustained():
     print("  - Total packets received")
     print("  - Memory leak status")
     print("  - Error count")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

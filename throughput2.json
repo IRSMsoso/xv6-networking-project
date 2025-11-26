@@ -2,7 +2,8 @@
   "metadata": {
     "timestamp": "2025-11-25T20:16:38.384415",
     "test_type": "binary_search_throughput",
-    "packets_per_test": 1000
+    "packets_per_test": 1000,
+    "ring_size": 16
   },
   "summary": {
     "best_rate_pps": 4013,

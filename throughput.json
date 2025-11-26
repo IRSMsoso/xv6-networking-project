@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-25T20:10:46.943332",
+    "test_type": "binary_search_throughput",
+    "packets_per_test": 1000,
+    "ring_size": 64
+  },
+  "summary": {
+    "best_rate_pps": 6310,
+    "effective_throughput_pps": 777.8522892495772,
+    "iterations": 10,
+    "search_range": [
+      1000,
+      50000
+    ]
+  },
+  "test_results": [
+    {
+      "rate": 25500,
+      "sent": 1000,
+      "received": 412,
+      "loss_rate": 58.8,
+      "throughput": 80.90751689606378,
+      "success": false
+    },
+    {
+      "rate": 13249,
+      "sent": 1000,
+      "received": 652,
+      "loss_rate": 34.8,
+      "throughput": 105.14630077861023,
+      "success": false
+    },
+    {
+      "rate": 7124,
+      "sent": 1000,
+      "received": 975,
+      "loss_rate": 2.5,
+      "throughput": 155.49143084409437,
+      "success": false
+    },
+    {
+      "rate": 4061,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 721.3606689834298,
+      "success": true
+    },
+    {
+      "rate": 5592,
+      "sent": 1000,
+      "received": 991,
+      "loss_rate": 0.8999999999999999,
+      "throughput": 158.20129757974453,
+      "success": true
+    },
+    {
+      "rate": 6358,
+      "sent": 1000,
+      "received": 985,
+      "loss_rate": 1.5,
+      "throughput": 156.58480667161984,
+      "success": false
+    },
+    {
+      "rate": 5975,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 787.5696936455769,
+      "success": true
+    },
+    {
+      "rate": 6166,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 789.742898383611,
+      "success": true
+    },
+    {
+      "rate": 6262,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 781.3524763855473,
+      "success": true
+    },
+    {
+      "rate": 6310,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 777.8522892495772,
+      "success": true
+    }
+  ]
+}

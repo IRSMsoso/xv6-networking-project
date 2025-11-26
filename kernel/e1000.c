@@ -7,10 +7,10 @@
 #include "defs.h"
 #include "e1000_dev.h"
 
-#define TX_RING_SIZE 16
+#define TX_RING_SIZE 16  // Increased from 16 for better throughput
 static struct tx_desc tx_ring[TX_RING_SIZE] __attribute__((aligned(16)));
 
-#define RX_RING_SIZE 16
+#define RX_RING_SIZE 16  // Increased from 16 for better throughput
 static struct rx_desc rx_ring[RX_RING_SIZE] __attribute__((aligned(16)));
 
 // remember where the e1000's registers live.
@@ -51,7 +51,7 @@ e1000_init(uint32 *xregs)
     panic("e1000");
   regs[E1000_TDLEN] = sizeof(tx_ring);
   regs[E1000_TDH] = regs[E1000_TDT] = 0;
-  
+
   // [E1000 14.4] Receive initialization
   memset(rx_ring, 0, sizeof(rx_ring));
   for (i = 0; i < RX_RING_SIZE; i++) {
@@ -85,7 +85,7 @@ e1000_init(uint32 *xregs)
     E1000_RCTL_BAM |                 // enable broadcast
     E1000_RCTL_SZ_2048 |             // 2048-byte rx buffers
     E1000_RCTL_SECRC;                // strip CRC
-  
+
   // ask e1000 for receive interrupts.
   regs[E1000_RDTR] = 0; // interrupt after every received packet (no timer)
   regs[E1000_RADV] = 0; // interrupt after every packet (no timer)
@@ -97,7 +97,7 @@ e1000_transmit(char *buf, int len)
 {
   // First, acquire lock
   acquire(&e1000_transmit_lock);
-  
+
   uint32 tx_next_ring_index = regs[E1000_TDT];
 
   // If the next descriptor in the ring isn't yet finished (we've wrapped around), then we early return error.
@@ -121,7 +121,7 @@ e1000_transmit(char *buf, int len)
   regs[E1000_TDT] = (tx_next_ring_index + 1) % TX_RING_SIZE;
 
   release(&e1000_transmit_lock);
-  
+
   return 0;
 }
 

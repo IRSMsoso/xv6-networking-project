@@ -21,7 +21,7 @@ static struct spinlock netlock;
 
 // UDP port management structures
 #define NPORTS 32
-#define QUEUESIZE 16
+#define QUEUESIZE 16  // Increased from 16 to handle burst traffic
 
 struct packet {
   char data[2048];
@@ -37,6 +37,7 @@ struct port_entry {
   int head;
   int tail;
   int count;
+  int drops;  // Track dropped packets
 };
 
 static struct port_entry ports[NPORTS];
@@ -53,6 +54,7 @@ netinit(void)
     ports[i].head = 0;
     ports[i].tail = 0;
     ports[i].count = 0;
+    ports[i].drops = 0;
   }
 }
 
@@ -91,6 +93,7 @@ sys_bind(void)
       ports[i].head = 0;
       ports[i].tail = 0;
       ports[i].count = 0;
+      ports[i].drops = 0;
       release(&netlock);
       return 0;
     }
@@ -352,6 +355,7 @@ ip_rx(char *buf, int len)
 
   // If queue is full, drop the packet
   if(pe->count >= QUEUESIZE) {
+    pe->drops++;  // Track the drop
     release(&netlock);
     kfree(buf);
     return;

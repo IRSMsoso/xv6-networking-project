@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-25T20:16:38.384415",
+    "test_type": "binary_search_throughput",
+    "packets_per_test": 1000
+  },
+  "summary": {
+    "best_rate_pps": 4013,
+    "effective_throughput_pps": 723.2561203311632,
+    "iterations": 10,
+    "search_range": [
+      1000,
+      50000
+    ]
+  },
+  "test_results": [
+    {
+      "rate": 25500,
+      "sent": 1000,
+      "received": 371,
+      "loss_rate": 62.9,
+      "throughput": 73.00817312819431,
+      "success": false
+    },
+    {
+      "rate": 13249,
+      "sent": 1000,
+      "received": 629,
+      "loss_rate": 37.1,
+      "throughput": 100.89470771664705,
+      "success": false
+    },
+    {
+      "rate": 7124,
+      "sent": 1000,
+      "received": 983,
+      "loss_rate": 1.7000000000000002,
+      "throughput": 188.90499006427763,
+      "success": false
+    },
+    {
+      "rate": 4061,
+      "sent": 1000,
+      "received": 17,
+      "loss_rate": 98.3,
+      "throughput": 2.793793211752437,
+      "success": false
+    },
+    {
+      "rate": 2530,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 638.6381579197802,
+      "success": true
+    },
+    {
+      "rate": 3295,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 675.611453313059,
+      "success": true
+    },
+    {
+      "rate": 3678,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 730.3482815770897,
+      "success": true
+    },
+    {
+      "rate": 3869,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 732.901941542638,
+      "success": true
+    },
+    {
+      "rate": 3965,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 728.6952019750136,
+      "success": true
+    },
+    {
+      "rate": 4013,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 723.2561203311632,
+      "success": true
+    }
+  ]
+}

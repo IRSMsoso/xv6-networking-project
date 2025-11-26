@@ -982,56 +982,157 @@ sustained_load_test()
 //
 // throughput test - measures packets per second
 // Receives 1000 packets, echoes them back, and calculates throughput
+// Validates payload, port, and sequence numbers
 // python3 stress_test.py throughput must be running to send packets
 //
 int
 throughput_test()
 {
   printf("throughput_test: starting\n");
-  printf("Waiting to receive 1000 packets and echo them back...\n");
+  printf("Running in continuous mode - will handle multiple test runs\n");
+  printf("Press Ctrl-C to stop\n\n");
 
   bind(2000);
-  int start = uptime();
 
-  char buf[1500];
-  uint32 src;
-  uint16 sport;
-  int received = 0;
-  int echoed = 0;
+  int test_number = 1;
 
-  for(int i = 0; i < 1000; i++){
-    int cc = recv(2000, &src, &sport, buf, sizeof(buf));
-    if(cc < 0){
-      fprintf(2, "throughput_test: recv() failed at packet %d\n", i);
-      break;
+  // Continuous loop - handle multiple test runs
+  while(1){
+    printf("=== Test Run #%d ===\n", test_number);
+    printf("Waiting for 1000 packets...\n");
+
+    int start = uptime();
+
+    char buf[1500];
+    uint32 src;
+    uint16 sport;
+    int received = 0;
+    int echoed = 0;
+    int out_of_order = 0;
+    int payload_errors = 0;
+    int last_seq = -1;
+
+    // Track which sequence numbers we've seen (static to avoid stack overflow)
+    static int seen[1000];
+    for(int i = 0; i < 1000; i++)
+      seen[i] = 0;
+
+    for(int i = 0; i < 1000; i++){
+      int cc = recv(2000, &src, &sport, buf, sizeof(buf));
+      if(cc < 0){
+        fprintf(2, "throughput_test: recv() failed at packet %d\n", i);
+        break;
+      }
+      received++;
+
+      // Validate source IP and port
+      if(src != 0x0A000202){  // 10.0.2.2
+        printf("WARNING: unexpected src IP %x at packet %d\n", src, i);
+      }
+
+      // Parse and validate payload
+      // Expected format: "throughput 123"
+      // Ensure we have space for null terminator
+      if(cc >= (int)sizeof(buf))
+        cc = sizeof(buf) - 1;
+      buf[cc] = '\0';  // Null terminate
+
+      // More lenient check - just need "throughput " prefix
+      if(cc < 12 || memcmp(buf, "throughput ", 11) != 0){
+        // Only report first few errors to avoid spam
+        if(payload_errors < 3){
+          printf("WARNING: invalid payload at packet %d (len=%d): ", i, cc);
+          for(int k = 0; k < cc && k < 20; k++){
+            if(buf[k] >= 32 && buf[k] <= 126)
+              printf("%c", buf[k]);
+            else
+              printf("\\x%x", (unsigned char)buf[k]);
+          }
+          printf("\n");
+        }
+        payload_errors++;
+        // Still try to echo it back
+      } else {
+        // Extract sequence number
+        int seq = 0;
+        for(int j = 11; j < cc && buf[j] >= '0' && buf[j] <= '9'; j++){
+          seq = seq * 10 + (buf[j] - '0');
+        }
+
+        // Mark this sequence number as seen
+        if(seq >= 0 && seq < 1000){
+          seen[seq] = 1;
+
+          // Check if out of order
+          if(last_seq >= 0 && seq != last_seq + 1){
+            out_of_order++;
+          }
+          last_seq = seq;
+        } else if(payload_errors < 3) {
+          printf("WARNING: sequence %d out of range at packet %d\n", seq, i);
+        }
+      }
+
+      // Echo the packet back
+      if(send(2000, src, sport, buf, cc) < 0){
+        fprintf(2, "throughput_test: send() failed at packet %d\n", i);
+      } else {
+        echoed++;
+      }
     }
-    received++;
 
-    // Echo the packet back
-    if(send(2000, src, sport, buf, cc) < 0){
-      fprintf(2, "throughput_test: send() failed at packet %d\n", i);
+    int elapsed = uptime() - start;
+
+    // Count how many unique sequence numbers we received
+    int unique_seqs = 0;
+    int missing_seqs = 0;
+    for(int i = 0; i < 1000; i++){
+      if(seen[i]){
+        unique_seqs++;
+      } else {
+        missing_seqs++;
+        if(missing_seqs <= 5)  // Only print first 5 missing
+          printf("  Missing sequence: %d\n", i);
+      }
+    }
+
+    printf("\n=== Test Run #%d Results ===\n", test_number);
+    printf("Packets received: %d/1000\n", received);
+    printf("Unique sequences: %d/1000\n", unique_seqs);
+    printf("Missing sequences: %d\n", missing_seqs);
+    printf("Out of order: %d\n", out_of_order);
+    printf("Payload errors: %d\n", payload_errors);
+    printf("Packets echoed: %d/%d\n", echoed, received);
+    printf("Time: %d ticks\n", elapsed);
+    if(elapsed > 0){
+      printf("Throughput: %d packets/sec\n", (received * 100) / elapsed);
+    }
+
+    // Relaxed validation - allow some payload errors but need good delivery
+    int all_valid = (received >= 990 && echoed >= 990 &&
+                     unique_seqs >= 990 && payload_errors <= 10);
+
+    if(all_valid){
+      printf("Status: OK");
+      if(payload_errors > 0 || out_of_order > 0){
+        printf(" (with minor issues)");
+      }
+      printf("\n\n");
     } else {
-      echoed++;
+      printf("Status: FAILED\n");
+      if(received < 990) printf("  - Too few packets received (%d/1000)\n", received);
+      if(echoed < 990) printf("  - Too few packets echoed (%d/1000)\n", echoed);
+      if(unique_seqs < 990) printf("  - Too many missing sequences (%d missing)\n", missing_seqs);
+      if(payload_errors > 10) printf("  - Too many payload errors (%d)\n", payload_errors);
+      printf("\n");
     }
+
+    test_number++;
+    // Brief pause before next test
+    pause(10);
   }
 
-  int elapsed = uptime() - start;
-
-  printf("\n=== Throughput Test Results ===\n");
-  printf("Packets received: %d/1000\n", received);
-  printf("Packets echoed: %d/%d\n", echoed, received);
-  printf("Time: %d ticks\n", elapsed);
-  if(elapsed > 0){
-    printf("Throughput: %d packets/sec\n", (received * 100) / elapsed);
-  }
-
-  if(received >= 950 && echoed >= 950){
-    printf("throughput_test: OK\n");
-    return 1;
-  } else {
-    printf("throughput_test: FAILED - packet loss detected\n");
-    return 0;
-  }
+  return 0;  // Never reached
 }
 
 void

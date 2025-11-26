@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "timestamp": "2025-11-25T20:13:30.413437",
+    "test_type": "binary_search_throughput",
+    "packets_per_test": 1000,
+    "ring_size": 16
+  },
+  "summary": {
+    "best_rate_pps": 4013,
+    "effective_throughput_pps": 728.3110485842375,
+    "iterations": 10,
+    "search_range": [
+      1000,
+      50000
+    ]
+  },
+  "test_results": [
+    {
+      "rate": 25500,
+      "sent": 1000,
+      "received": 374,
+      "loss_rate": 62.6,
+      "throughput": 73.55834998592063,
+      "success": false
+    },
+    {
+      "rate": 13249,
+      "sent": 1000,
+      "received": 642,
+      "loss_rate": 35.8,
+      "throughput": 103.9516179317546,
+      "success": false
+    },
+    {
+      "rate": 7124,
+      "sent": 1000,
+      "received": 979,
+      "loss_rate": 2.1,
+      "throughput": 188.04412320844605,
+      "success": false
+    },
+    {
+      "rate": 2530,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 643.607426697522,
+      "success": true
+    },
+    {
+      "rate": 3295,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 675.8351655345825,
+      "success": true
+    },
+    {
+      "rate": 3678,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 722.494779345864,
+      "success": true
+    },
+    {
+      "rate": 3869,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 725.2641298671656,
+      "success": true
+    },
+    {
+      "rate": 3965,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 725.3204433714338,
+      "success": true
+    },
+    {
+      "rate": 4013,
+      "sent": 1000,
+      "received": 1000,
+      "loss_rate": 0.0,
+      "throughput": 728.3110485842375,
+      "success": true
+    }
+  ]
+}

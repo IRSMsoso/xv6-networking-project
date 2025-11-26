@@ -255,6 +255,53 @@ tx()
 // nettest.py ping must be started first.
 //
 int
+ping_server()
+{
+  printf("ping_server: starting\n");
+
+  bind(2000);
+
+  char ibuf[128];
+  uint32 src = 0;
+  uint16 sport = 0;
+
+  while(1) {
+    memset(ibuf, 0, sizeof(ibuf));
+    int cc = recv(2000, &src, &sport, ibuf, sizeof(ibuf)-1);
+    if(cc < 0){
+      fprintf(2, "ping_server: recv() failed\n");
+      return 0;
+    }
+
+    if(src != 0x0A000202){ // 10.0.2.2
+      printf("ping_server: wrong ip src %x, expecting %x\n", src, 0x0A000202);
+      return 0;
+    }
+
+    if(sport != NET_TESTS_PORT){
+      printf("ping_server: wrong sport %d, expecting %d\n", sport, NET_TESTS_PORT);
+      return 0;
+    }
+
+    uint32 dst = 0x0A000202; // 10.0.2.2
+    int dport = NET_TESTS_PORT;
+    if(send(2000, dst, dport, ibuf, sizeof(ibuf)) < 0){
+      printf("ping_server: reply send() failed\n");
+      return 0;
+    }
+  }
+
+  
+  printf("ping_server ended\n");
+  return 1;
+}
+
+//
+// send just one UDP packets to nettest.py ping,
+// expect a reply.
+// nettest.py ping must be started first.
+//
+int
 ping0()
 {
   printf("ping0: starting\n");
@@ -1050,6 +1097,7 @@ usage()
   printf("       nettest throughput\n");
   printf("       nettest sustained\n");
   printf("       nettest grade\n");
+  printf("       nettest ping_server\n");
   exit(1);
 }
 
@@ -1172,6 +1220,8 @@ main(int argc, char *argv[])
     throughput_test();
   } else if(strcmp(argv[1], "sustained") == 0){
     sustained_load_test();
+  } else if(strcmp(argv[1], "ping_server") == 0) {
+    ping_server();
   } else {
     usage();
   }

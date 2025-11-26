@@ -5,8 +5,10 @@
 # to be used with user/nettest.c
 #
 
+from datetime import datetime
 import socket
 import sys
+import threading
 import time
 import os
 
@@ -165,5 +167,89 @@ elif sys.argv[1] == "grade":
     while True:
         buf, raddr = sock.recvfrom(4096)
         sock.sendto(buf, raddr)
+elif sys.argv[1] == "latency":
+    class LatencyInfo:
+        throughput = None
+        send_time = None
+        recv_time = None
+        
+    throughputs = [1, 10, 100, 1000]
+    #throughputs = [1]
+
+    total_sent = 0
+
+    for throughput in throughputs:
+        total_sent += throughput * 10
+
+    send_infos = {}
+
+    id = 0
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('127.0.0.1', SERVERPORT))
+    print("Bound to", SERVERPORT)
+
+    def recv_thread(sock: socket.socket):
+        print("recv thread started")
+        while True:
+            buf0, raddr0 = sock.recvfrom(8)
+            recv_id = int.from_bytes(buf0, 'big')
+            #print("Received ID", recv_id)
+            send_infos[recv_id].recv_time = time.perf_counter()
+
+    t = threading.Thread(target=recv_thread, args=(sock,))
+    t.start()
+
+    for throughput in throughputs:
+        print("Testing latency with throughput:", throughput, "per second")
+        # We do 10 seconds of each throughput
+        for i in range(throughput * 10):
+            # Encode 
+            send_infos[id] = LatencyInfo()
+            send_infos[id].send_time = time.perf_counter()
+            send_infos[id].throughput = throughput
+            sock.sendto(id.to_bytes(8, 'big'), ("127.0.0.1", FWDPORT1))
+            id += 1
+            time.sleep(1 / throughput)
+            #print("Throughput", throughput, "and sleeping for", 1 / throughput, "i:", i)
+
+    print("Waiting 5 seconds for recv to catch up")
+
+    time.sleep(5)
+
+    num_recv = 0
+
+    throughput_stats = {}
+
+    for throughput in throughputs:
+        min_latency = 1000000000
+        max_latency = 0
+        total_latency = 0
+        num_valid = 0
+        for send_info in send_infos.values():
+            if send_info.throughput != throughput:
+                continue
+
+            if send_info.recv_time != None:
+                num_recv += 1
+                num_valid += 1
+                latency = (send_info.recv_time - send_info.send_time) * 1000.0
+                # print("latency:", latency)
+                total_latency += latency
+                if latency < min_latency:
+                    min_latency = latency
+                if latency > max_latency:
+                    max_latency = latency
+        
+        print("Average latency for throughput of " + str(throughput) + " per second:", total_latency / num_valid, "ms")
+        print("Max latency for throughput of " + str(throughput) + " per second:", max_latency, "ms")
+        print("Min latency for throughput of " + str(throughput) + " per second:", min_latency, "ms")
+
+
+    print("Total messages sent:", len(send_infos))
+    print("Total messages received:", num_recv)
+
+    exit()
+    
 else:
     usage()

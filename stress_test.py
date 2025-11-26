@@ -11,13 +11,12 @@ import time
 import os
 import threading
 
-# qemu listens for packets sent to FWDPORT,
-# and re-writes them so they arrive in
-# xv6 with destination port 2000.
+# Port configuration matching nettest.py and Makefile
+# qemu forwards FWDPORT1 -> xv6 port 2000, FWDPORT2 -> xv6 port 2001
 FWDPORT1 = (os.getuid() % 5000) + 25999
 FWDPORT2 = (os.getuid() % 5000) + 30999
 
-# xv6's nettest.c tx sends to SERVERPORT.
+# Host listens on SERVERPORT for xv6 replies
 SERVERPORT = (os.getuid() % 5000) + 25099
 
 

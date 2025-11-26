@@ -327,10 +327,31 @@ QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
+# --- START OF MODIFIED NET QEMUOPTS (FIXED) ---
+# Define the range of ports needed for multi-port burst test (2000 to 2015)
+BURST_PORTS_COUNT = 16
+# Re-define HOST_PORT_BASE dynamically using the UID, consistent with nettest.py
+HOST_PORT_BASE = $(shell expr `id -u` % 5000 + 26500)
+
+# Generate hostfwd rules for ports 2000 to 2015
+# KEY FIX: Use tr -d '\n' to ensure the output is a single line string.
+QEMU_FORWARD_RULES = $(shell \
+    (for i in $$(seq 0 $(shell expr $(BURST_PORTS_COUNT) - 1)); do \
+        HOST_P=$$(expr $(HOST_PORT_BASE) + $$i); \
+        GUEST_P=$$(expr 2000 + $$i); \
+        if [ $$i -eq 0 ]; then \
+            echo "hostfwd=udp::$$HOST_P-:$$GUEST_P"; \
+        else \
+            echo ",hostfwd=udp::$$HOST_P-:$$GUEST_P"; \
+        fi; \
+    done) | tr -d '\n')
+
 ifeq ($(LAB),net)
-QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT1)-:2000,hostfwd=udp::$(FWDPORT2)-:2001 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
+# We now use the fully clean, single-line variable QEMU_FORWARD_RULES.
+QEMUOPTS += -netdev user,id=net0,$(QEMU_FORWARD_RULES) -object filter-dump,id=net0,netdev=net0,file=packets.pcap
 QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
 endif
+# --- END OF MODIFIED NET QEMUOPTS (FIXED) ---
 
 # makes a new fs.img
 qemu: check-qemu-version newfs.img $K/kernel fs.img

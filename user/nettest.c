@@ -968,8 +968,6 @@ sustained_load_test()
 
   if(received_count < min_acceptable){
     printf("sustained_load_test: FAILED - too many packets lost\n");
-    printf("Received: %d/%d (%d%%)\n",
-           received_count, expected, (received_count * 100) / expected);
     return 0;
   }
 
@@ -1034,6 +1032,62 @@ throughput_test()
   }
 }
 
+//
+// Burst Server:
+// Forks 16 children, each binding to a specific port (2000-2015).
+// Each child echoes packets back to the sender.
+//
+int
+burst_server()
+{
+  int max_ports = 16; // 支持的最大端口数
+  int base_port = 2000;
+
+  printf("burst_server: starting listener on ports %d-%d\n", base_port, base_port + max_ports - 1);
+
+  for(int i = 0; i < max_ports; i++){
+    int pid = fork();
+    
+    if(pid < 0){
+      printf("burst_server: fork failed\n");
+      return 0;
+    }
+
+    if(pid == 0){
+      // Child process: handle one specific port
+      int port = base_port + i;
+      if(bind(port) < 0){
+        printf("burst_server: bind(%d) failed\n", port);
+        exit(1);
+      }
+
+      // Echo loop
+      while(1){
+        char buf[1500];
+        uint32 src;
+        uint16 sport;
+        
+        // Block waiting for packet
+        int cc = recv(port, &src, &sport, buf, sizeof(buf));
+        
+        if(cc > 0){
+          // Echo packet back to sender
+          send(port, src, sport, buf, cc);
+        }
+      }
+      exit(0); // Should not reach here
+    }
+  }
+
+  // Parent process: wait forever (or until killed)
+  // This keeps the shell from creating a zombie or returning prompt immediately
+  while(1){
+    pause(100);
+  }
+  
+  return 1;
+}
+
 void
 usage()
 {
@@ -1050,6 +1104,7 @@ usage()
   printf("       nettest throughput\n");
   printf("       nettest sustained\n");
   printf("       nettest grade\n");
+  printf("       nettest burst\n");
   exit(1);
 }
 
@@ -1172,6 +1227,8 @@ main(int argc, char *argv[])
     throughput_test();
   } else if(strcmp(argv[1], "sustained") == 0){
     sustained_load_test();
+  } else if(strcmp(argv[1], "burst") == 0){
+    burst_server();
   } else {
     usage();
   }

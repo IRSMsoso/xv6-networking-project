@@ -279,13 +279,15 @@ def test_throughput(target_rate=1000):
 
 def get_next_filename(base="throughput", ext=".json"):
     """Find next available filename: throughput.json, throughput1.json, etc."""
-    path = f"{base}{ext}"
+    results_dir = "tests/results"
+    os.makedirs(results_dir, exist_ok=True)
+    path = os.path.join(results_dir, f"{base}{ext}")
     if not os.path.exists(path):
         return path
 
     counter = 1
     while True:
-        path = f"{base}{counter}{ext}"
+        path = os.path.join(results_dir, f"{base}{counter}{ext}")
         if not os.path.exists(path):
             return path
         counter += 1

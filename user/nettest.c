@@ -1,6 +1,6 @@
 //
 // network tests
-// to be used with nettest.py (run outside of qemu)
+// to be used with host_net_helper.py (run outside of qemu)
 //
 
 #include "kernel/types.h"
@@ -13,7 +13,7 @@ int countfree();
 
 //
 // send a single UDP packet (but don't recv() the reply).
-// python3 nettest.py txone can be used to wait for
+// python3 host_net_helper.py txone can be used to wait for
 // this packet, and you can also see what
 // happened with tcpdump -XXnr packets.pcap
 //
@@ -37,7 +37,7 @@ txone()
 //
 // test just receive.
 // outside of qemu, run
-//   ./nettest.py rx
+//   ./host_net_helper.py rx
 //
 int
 rx(char *name)
@@ -119,7 +119,7 @@ rx(char *name)
 //
 // test receive on two different ports, interleaved.
 // outside of qemu, run
-//   ./nettest.py rx2
+//   ./host_net_helper.py rx2
 //
 int
 rx2()
@@ -226,7 +226,7 @@ rx2()
 }
 
 //
-// send some UDP packets to nettest.py tx.
+// send some UDP packets to host_net_helper.py tx.
 //
 int
 tx()
@@ -250,9 +250,9 @@ tx()
 }
 
 //
-// send just one UDP packets to nettest.py ping,
+// send just one UDP packets to host_net_helper.py ping,
 // expect a reply.
-// nettest.py ping must be started first.
+// host_net_helper.py ping must be started first.
 //
 int
 ping_server()
@@ -297,9 +297,9 @@ ping_server()
 }
 
 //
-// send just one UDP packets to nettest.py ping,
+// send just one UDP packets to host_net_helper.py ping,
 // expect a reply.
-// nettest.py ping must be started first.
+// host_net_helper.py ping must be started first.
 //
 int
 ping0()
@@ -353,9 +353,9 @@ ping0()
 }
 
 //
-// send many UDP packets to nettest.py ping,
+// send many UDP packets to host_net_helper.py ping,
 // expect a reply to each.
-// nettest.py ping must be started first.
+// host_net_helper.py ping must be started first.
 //
 int
 ping1()
@@ -413,9 +413,9 @@ ping1()
 }
 
 //
-// send UDP packets from two different ports to nettest.py ping,
+// send UDP packets from two different ports to host_net_helper.py ping,
 // expect a reply to each to appear on the correct port.
-// nettest.py ping must be started first.
+// host_net_helper.py ping must be started first.
 //
 int
 ping2()
@@ -495,7 +495,7 @@ ping2()
 // bracketed by two packets from port 2009.
 // check that the two packets can be recv()'d on port 2009.
 // check that port 2008 had a finite queue length (dropped some).
-// nettest.py ping must be started first.
+// host_net_helper.py ping must be started first.
 //
 int
 ping3()
@@ -866,7 +866,7 @@ dns()
 
 //
 // latency test - measure round-trip time (RTT) for ping packets
-// python3 nettest.py ping must be running to act as echo server
+// python3 host_net_helper.py ping must be running to act as echo server
 //
 int
 latency_test()
@@ -1292,7 +1292,7 @@ main(int argc, char *argv[])
     ping3();
   } else if(strcmp(argv[1], "grade") == 0){
     //
-    // "python3 nettest.py grade" must already be running...
+    // "python3 host_net_helper.py grade" must already be running...
     //
     int free0 = countfree();
     int free1 = 0;

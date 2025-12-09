@@ -11,7 +11,7 @@ serverout = None
 @test(0, "running nettest")
 def test_nettest():
     global serverout
-    server = subprocess.Popen(["python3", "./nettest.py", "grade"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    server = subprocess.Popen(["python3", "./host_net_helper.py", "grade"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     r.run_qemu(shell_script([
         'nettest grade'
     ]), timeout=30)

@@ -19,7 +19,7 @@ from datetime import datetime
 FWDPORT1 = (os.getuid() % 5000) + 25999
 FWDPORT2 = (os.getuid() % 5000) + 30999
 
-# xv6's nettest.c tx sends to SERVERPORT.
+# xv6's nettest.c and host_net_helper.py use SERVERPORT.
 SERVERPORT = (os.getuid() % 5000) + 25099
 
 

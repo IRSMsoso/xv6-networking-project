@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 #
-# net tests
-# to be used with user/nettest.c
+# Host-side networking helper for xv6 network tests
+# Works with user/nettest.c running inside xv6
+# Provides packet sending/receiving and echo server functionality
 #
 
 from datetime import datetime
@@ -24,16 +25,16 @@ SERVERPORT = (os.getuid() % 5000) + 25099
 
 
 def usage():
-    sys.stderr.write("Usage: nettest.py txone\n")
-    sys.stderr.write("       nettest.py rxone\n")
-    sys.stderr.write("       nettest.py rx\n")
-    sys.stderr.write("       nettest.py rx2\n")
-    sys.stderr.write("       nettest.py rxburst\n")
-    sys.stderr.write("       nettest.py tx\n")
-    sys.stderr.write("       nettest.py ping\n")
-    sys.stderr.write("       nettest.py latency\n")
-    sys.stderr.write("       nettest.py latency_sync\n")
-    sys.stderr.write("       nettest.py grade\n")
+    sys.stderr.write("Usage: host_net_helper.py txone\n")
+    sys.stderr.write("       host_net_helper.py rxone\n")
+    sys.stderr.write("       host_net_helper.py rx\n")
+    sys.stderr.write("       host_net_helper.py rx2\n")
+    sys.stderr.write("       host_net_helper.py rxburst\n")
+    sys.stderr.write("       host_net_helper.py tx\n")
+    sys.stderr.write("       host_net_helper.py ping\n")
+    sys.stderr.write("       host_net_helper.py latency\n")
+    sys.stderr.write("       host_net_helper.py latency_sync\n")
+    sys.stderr.write("       host_net_helper.py grade\n")
     sys.exit(1)
 
 
@@ -43,7 +44,7 @@ if len(sys.argv) != 2:
 if sys.argv[1] == "txone":
     #
     # listen for a single UDP packet sent by xv6's nettest txone.
-    # nettest.py must be started before xv6's nettest txone.
+    # host_net_helper.py must be started before xv6's nettest txone.
     #
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", SERVERPORT))
@@ -123,7 +124,7 @@ elif sys.argv[1] == "rxburst":
 elif sys.argv[1] == "tx":
     #
     # listen for UDP packets sent by xv6's nettest tx.
-    # nettest.py must be started before xv6's nettest tx.
+    # host_net_helper.py must be started before xv6's nettest tx.
     #
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", SERVERPORT))
@@ -138,7 +139,7 @@ elif sys.argv[1] == "ping":
     #
     # listen for UDP packets sent by xv6's nettest ping,
     # and send them back.
-    # nettest.py must be started before xv6's nettest.
+    # host_net_helper.py must be started before xv6's nettest.
     #
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", SERVERPORT))

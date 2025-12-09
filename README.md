@@ -68,13 +68,13 @@ python3 stress_test.py 5000        # Test at 5000 pkt/s
 
 **E1000 Driver:** DMA-based TX/RX rings with separate locks for concurrent operations. Batch-processes received packets per interrupt to minimize overhead.
 
-**UDP Stack:** Think of it like apartment mailboxes—32 ports with 16-packet FIFO queues. `bind()` claims a mailbox, `ip_rx()` sorts incoming packets by port number, `recv()` retrieves them. Queue full? Packet dropped (UDP semantics).
+**UDP Stack:** Think of it like apartment mailboxes with 32 ports, each having 16-packet FIFO queues. `bind()` claims a mailbox, `ip_rx()` sorts incoming packets by port number, `recv()` retrieves them. Queue full? Packet dropped (UDP semantics).
 
 ## Performance
 
 All MIT 6.828 correctness tests pass (TX/RX, port isolation, overflow handling, DNS queries, memory stability).
 
-**Throughput:** Max zero-loss rates of 4,013 pkt/s (16-desc ring) and 6,310 pkt/s (64-desc ring). Increasing ring size 300% only yields 57% gain—bottleneck is kernel processing, not hardware.
+**Throughput:** Max zero-loss rates of 4,013 pkt/s (16-desc ring) and 6,310 pkt/s (64-desc ring). Increasing ring size 300% only yields 57% gain due to the bottleneck being kernel processing, not hardware.
 
 **Latency:** Counterintuitively *decreases* at higher throughput (1.58ms @ 1 msg/s vs 1.23ms @ 1000 msg/s). Batch processing amortizes per-packet overhead.
 

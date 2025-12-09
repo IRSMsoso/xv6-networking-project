@@ -11,8 +11,11 @@ This project extends xv6 with networking capabilities by implementing an E1000 n
 ### Build and Run
 
 ```bash
-# Build xv6 with networking
+# Build and run xv6 with networking
 make qemu
+
+# Clean build artifacts if needed
+make clean
 
 # In xv6 shell
 $ nettest
@@ -158,15 +161,6 @@ You may check [`final_report.pdf`](final_report.pdf) to read our discussion over
 - **16-Packet Queue Depth**: Matches UDP best-effort semantics, sufficient for burst handling
 - **Separate TX/RX Locks**: Enables concurrent operations, prevents deadlock
 - **Batch Receive Processing**: Drain all available packets per interrupt to reduce context switches
-
-## Development
-
-### Building
-
-```bash
-make qemu          # Build and run
-make clean         # Clean build artifacts
-```
 
 ## Key Files Reference
 
